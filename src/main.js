@@ -4,7 +4,7 @@ import router from "./router/router";
 import store from "./store/store";
 import "./registerServiceWorker";
 import "@/common/styles/base.css";
-import "@/common/js/rem.js";
+// import "@/common/js/rem.js";
 import * as method from "@/common/js/mixin.js";
 import API from "@/api/api";
 import ElementUI from "element-ui";

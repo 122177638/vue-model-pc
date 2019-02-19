@@ -1,47 +1,66 @@
-// import Vue from "vue";
+import Vue from "vue";
 import axios from "axios";
+import envconfig from "./envconfig";
 import qs from "qs";
-import envconfig from "./envconfig.js";
-// import * as vux from "vux";
-// console.log(vux);
-// Vue.use(LoadingPlugin);
-// Vue.use(ToastPlugin);
+
 // 发起请求前
-axios.interceptors.request.use(
+let loadingInstance = null;
+
+let axiosInstance = axios.create();
+axiosInstance.interceptors.request.use(
   config => {
-    // Vue.$vux.loading.show({
-    //   text: "加载中..."
-    // });
+    // 默认开启loading
+    if (!config.LOADINGHIDE) {
+      loadingInstance = Vue.prototype.$loading({
+        lock: true,
+        text: "Loading",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.7)"
+      });
+    }
     if (config.method.toUpperCase() === "POST") {
       config.data = qs.stringify(config.data);
     }
     return config;
   },
   error => {
-    // Vue.$vux.toast.show({
-    //   text: "加载超时",
-    //   type: "warn"
-    // });
+    Vue.prototype.$message({
+      message: "加载超时",
+      type: "warning"
+    });
     return Promise.reject(error);
   }
 );
 // 发起请求后
-axios.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   res => {
-    // Vue.$vux.loading.hide();
+    let {
+      data: { content, status }
+    } = res;
+    // loading close...
+    loadingInstance && loadingInstance.close();
+    if (status < 0) {
+      Vue.prototype.$msgbox({
+        title: "请求错误",
+        type: "error",
+        message: content
+      });
+      throw new Error(content);
+    }
     return res;
   },
   error => {
     console.log("好多人在访问呀，请重新试试");
-    // Vue.$vux.loading.hide();
+    // loading close...
+    loadingInstance && loadingInstance.close();
     if (error) {
       let errortime = null;
       clearTimeout(errortime);
       errortime = setTimeout(() => {
-        // Vue.$vux.toast.show({
-        //   text: "加载失败",
-        //   type: "cancel"
-        // });
+        Vue.prototype.$message({
+          message: "网络错误",
+          type: "error"
+        });
         clearTimeout(errortime);
       }, 0);
     }
@@ -58,7 +77,7 @@ export default class Axios {
           method,
           url,
           baseURL: envconfig.baseURL,
-          timeout: 30000,
+          timeout: 10000,
           headers: null
           // withCredentials: true, //是否携带cookies发起请求
         },
@@ -67,7 +86,7 @@ export default class Axios {
       method.toUpperCase() === "POST"
         ? (_option.data = params)
         : (_option.params = params);
-      axios.request(_option).then(
+      axiosInstance.request(_option).then(
         res => {
           resolve(res.data);
         },
